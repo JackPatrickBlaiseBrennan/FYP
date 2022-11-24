@@ -10,7 +10,7 @@ public class Main {
     public static void main(String[] args) {
         Model model = new Model("Scheduler");
         // Variable Declaration
-        String[] shifts = {"Off", "Morning", "Afternoon", "Night"};
+        String[] shifts = {"O", "M", "A", "N"};
         final int Off = 0;
         final int Morning = 1;
         final int Afternoon = 2;
@@ -54,7 +54,7 @@ public class Main {
         for (int j = 0; j < numEmployees; j++){
             System.out.print("Employee" + (j+1)+": ");
             for (int i =0; i < period; i++){
-                System.out.print(roster[i][j].getValue());
+                System.out.print(shifts[roster[i][j].getValue()] + " ");
             }
             System.out.print("\n");
         }

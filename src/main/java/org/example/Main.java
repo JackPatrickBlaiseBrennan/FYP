@@ -5,6 +5,8 @@ import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
+import java.util.Arrays;
+
 
 public class Main {
     public static void main(String[] args) {
@@ -16,8 +18,12 @@ public class Main {
         final int Afternoon = 2;
         final int Night = 3;
         int numShifts = shifts.length-1;
-        int period = 8;
-        int numEmployees = 17;
+        int period = 32;
+        int numEmployees = 18;
+
+        IntVar OffDaysRange = model.intVar(1, 4);
+        int numSubPeriods = (int) Math.ceil((double)period / 4);
+        int subPeriodLength = (int) Math.ceil((double)period / numSubPeriods);
 
         IntVar[][] roster = model.intVarMatrix("roster", period, numEmployees, 0, numShifts);
 
@@ -25,8 +31,11 @@ public class Main {
         for(int i=0; i < numEmployees; i++){
             // every 4 days at least 1 holidays
             IntVar[] cols = ArrayUtils.getColumn(roster, i);
-            IntVar OffDaysRange = model.intVar(2, 4);
-            model.count(Off, cols, OffDaysRange).post();
+            for (int j = 0; j < numSubPeriods; j++) {
+                IntVar[] subCols = Arrays.copyOfRange(cols, subPeriodLength * j,
+                        (subPeriodLength * j) + subPeriodLength-1);
+                model.count(Off, subCols, OffDaysRange).post();
+            }
             for (int j = 0; j < period; j++){
                 // Each shift has 4 allocations
                 IntVar MorningNum = model.intVar(4);
@@ -50,7 +59,6 @@ public class Main {
         Solver s = model.getSolver();
         s.solve();
 
-//        System.out.println(s.get);
         for (int j = 0; j < numEmployees; j++){
             System.out.print("Employee" + (j+1)+": ");
             for (int i =0; i < period; i++){

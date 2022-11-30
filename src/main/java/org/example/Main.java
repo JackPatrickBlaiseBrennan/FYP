@@ -2,6 +2,7 @@ package org.example;
 
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
@@ -18,7 +19,7 @@ public class Main {
         final int Afternoon = 2;
         final int Night = 3;
         int numShifts = shifts.length-1;
-        int period = 32;
+        int period = 8;
         int numEmployees = 18;
 
         IntVar OffDaysRange = model.intVar(1, 4);
@@ -56,7 +57,13 @@ public class Main {
             }
         }
 
+        // user constraints
+        BoolVar dayoff = model.arithm(roster[3][0], "=", 0).reify();
+        BoolVar dayoff2 = model.arithm(roster[3][1], "=", 0).reify();
+        BoolVar dayoff3 = model.arithm(roster[3][2], "=", 0).reify();
+
         Solver s = model.getSolver();
+        s.showSolutions();
         s.solve();
 
         for (int j = 0; j < numEmployees; j++){
@@ -66,6 +73,9 @@ public class Main {
             }
             System.out.print("\n");
         }
+        System.out.print(dayoff);
+        System.out.print(dayoff2);
+        System.out.print(dayoff3);
     }
 
     public static void allDifferentExcept0(Model model, IntVar... vars){

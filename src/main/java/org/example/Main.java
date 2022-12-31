@@ -13,6 +13,13 @@ public class Main {
 
         RosterModel rosterModel = new RosterModel(period, numEmployees, 4, 4, 4, 4);
         rosterModel.postAllHardConstraints();
+        rosterModel.addRequest(0,3,3,1);
+        rosterModel.addRequest(1,3,3,1);
+        rosterModel.addRequest(2,3,3,1);
+        rosterModel.addRequest(3,3,3,1);
+        rosterModel.addRequest(4,3,3,1);
+        rosterModel.addRequest(5,3,3,1);
+        rosterModel.addRequest(6,3,3,1);
         rosterModel.postAllUserConstraints();
         Model model = rosterModel.getModel();
         Solver s = model.getSolver();

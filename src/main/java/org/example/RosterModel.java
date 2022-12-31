@@ -1,9 +1,11 @@
 package org.example;
 
 import org.chocosolver.solver.Model;
+import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class RosterModel {
@@ -14,6 +16,7 @@ public class RosterModel {
     public enum Shift{
         OFF, MORNING, AFTERNOON, NIGHT
     }
+    private final ArrayList<Request> requests = new ArrayList<>();
     public RosterModel(int period, int numEmployees, int numOfMorningShifts, int numOfAfternoonShifts, int numOfNightShifts, int periodDivisor) {
         this(period, numEmployees, numOfMorningShifts, numOfAfternoonShifts, numOfNightShifts);
         setPeriodDivisor(periodDivisor);
@@ -56,19 +59,21 @@ public class RosterModel {
         }
         this.roster = roster;
     }
+    public void addRequest(int employeeNumber, int dayOffRangeStart, int dayOffRangeEnd, int minNumOff){
+        Request request = new Request(employeeNumber, dayOffRangeStart, dayOffRangeEnd, minNumOff);
+        requests.add(request);
+    }
     public void postAllUserConstraints(){
-        numberOfGranted = model.intVar("numberOfGranted", 0, numEmployees*period);
-        IntVar[] dayOffGranted = model.intVarArray("dayOffGranted", 7, 0, 1);
-
-        model.ifOnlyIf(model.arithm(dayOffGranted[0], ">", 0), model.arithm(roster[3][0], "=", 0));
-        model.ifOnlyIf(model.arithm(dayOffGranted[1], ">", 0), model.arithm(roster[3][1], "=", 0));
-        model.ifOnlyIf(model.arithm(dayOffGranted[2], ">", 0), model.arithm(roster[3][2], "=", 0));
-        model.ifOnlyIf(model.arithm(dayOffGranted[3], ">", 0), model.arithm(roster[3][3], "=", 0));
-        model.ifOnlyIf(model.arithm(dayOffGranted[4], ">", 0), model.arithm(roster[3][4], "=", 0));
-        model.ifOnlyIf(model.arithm(dayOffGranted[5], ">", 0), model.arithm(roster[3][5], "=", 0));
-        model.ifOnlyIf(model.arithm(dayOffGranted[6], ">", 0), model.arithm(roster[3][6], "=", 0));
+        numberOfGranted = model.intVar("numberOfGranted", 0, requests.size());
+        IntVar[] dayOffGranted = model.intVarArray("dayOffGranted", requests.size(), 0, 1);
+        for (Request request : requests) {
+            IntVar[] employeeCol = ArrayUtils.getColumn(roster, request.getEmployeeNumber());
+            IntVar[] rangeCol = Arrays.copyOfRange(employeeCol, request.getDayOffRangeStart(), request.getDayOffRangeEnd() + 1);
+            IntVar rangeDays = model.intVar(request.getMinNumOff(), request.getMaxNumOff());
+            Constraint count = model.count(Shift.OFF.ordinal(), rangeCol, rangeDays);
+            model.ifOnlyIf(model.arithm(dayOffGranted[requests.indexOf(request)], ">", 0), count);
+        }
         model.sum(dayOffGranted,"=",numberOfGranted).post();
-
         model.setObjective(Model.MAXIMIZE, numberOfGranted);
     }
     public Model getModel() {

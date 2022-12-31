@@ -4,6 +4,8 @@ import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.IntVar;
 
+import java.util.ArrayList;
+
 
 public class Main {
     public static void main(String[] args) {
@@ -22,6 +24,7 @@ public class Main {
         rosterModel.addRequest(6,3,3,1);
         rosterModel.postAllUserConstraints();
         Model model = rosterModel.getModel();
+        ArrayList<Request> requestList = rosterModel.getRequestList();
         Solver s = model.getSolver();
         s.limitTime("2s");
 
@@ -37,6 +40,18 @@ public class Main {
                 System.out.print("\n");
             }
             System.out.print("Number of user requests granted: " + numberOfGranted.getValue() + "\n");
+            if (numberOfGranted.getValue() < 10){
+                System.out.println("Not Granted:");
+                IntVar[] daysOffGranted = rosterModel.getDayOffGranted();
+                for (Request request: requestList) {
+                    int index = requestList.indexOf(request);
+                    if (daysOffGranted[index].getValue() < 1){
+                        System.out.println("Index: " + index + " Employee: " + request.getEmployeeNumber() +
+                                " dayOffRangeStart: " + request.getDayOffRangeStart() +
+                                " dayOffRangeEnd: " + request.getDayOffRangeEnd() + " minNum: " + request.getMinNumOff());
+                    }
+                }
+            }
         }
         s.printStatistics();
     }

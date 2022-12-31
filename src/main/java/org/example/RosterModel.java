@@ -9,14 +9,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class RosterModel {
-    private final Model model; private IntVar[][] roster; private final IntVar numOfMorningShifts; private final IntVar numOfAfternoonShifts;
+    private final Model model; private IntVar[][] roster; private IntVar[] dayOffGranted;
+    private final IntVar numOfMorningShifts; private final IntVar numOfAfternoonShifts;
     private final IntVar numOfNightShifts; private IntVar OffDaysRange; private IntVar numberOfGranted;
     private int numSubPeriods; private int subPeriodLength; private final int period;
     private final int numEmployees;
     public enum Shift{
         OFF, MORNING, AFTERNOON, NIGHT
     }
-    private final ArrayList<Request> requests = new ArrayList<>();
+    private final ArrayList<Request> requestList = new ArrayList<>();
     public RosterModel(int period, int numEmployees, int numOfMorningShifts, int numOfAfternoonShifts, int numOfNightShifts, int periodDivisor) {
         this(period, numEmployees, numOfMorningShifts, numOfAfternoonShifts, numOfNightShifts);
         setPeriodDivisor(periodDivisor);
@@ -61,24 +62,26 @@ public class RosterModel {
     }
     public void addRequest(int employeeNumber, int dayOffRangeStart, int dayOffRangeEnd, int minNumOff){
         Request request = new Request(employeeNumber, dayOffRangeStart, dayOffRangeEnd, minNumOff);
-        requests.add(request);
+        requestList.add(request);
     }
     public void postAllUserConstraints(){
-        numberOfGranted = model.intVar("numberOfGranted", 0, requests.size());
-        IntVar[] dayOffGranted = model.intVarArray("dayOffGranted", requests.size(), 0, 1);
-        for (Request request : requests) {
+        numberOfGranted = model.intVar("numberOfGranted", 0, requestList.size());
+        IntVar[] dayOffGranted = model.intVarArray("dayOffGranted", requestList.size(), 0, 1);
+        for (Request request : requestList) {
             IntVar[] employeeCol = ArrayUtils.getColumn(roster, request.getEmployeeNumber());
             IntVar[] rangeCol = Arrays.copyOfRange(employeeCol, request.getDayOffRangeStart(), request.getDayOffRangeEnd() + 1);
             IntVar rangeDays = model.intVar(request.getMinNumOff(), request.getMaxNumOff());
             Constraint count = model.count(Shift.OFF.ordinal(), rangeCol, rangeDays);
-            model.ifOnlyIf(model.arithm(dayOffGranted[requests.indexOf(request)], ">", 0), count);
+            model.ifOnlyIf(model.arithm(dayOffGranted[requestList.indexOf(request)], ">", 0), count);
         }
         model.sum(dayOffGranted,"=",numberOfGranted).post();
         model.setObjective(Model.MAXIMIZE, numberOfGranted);
+        this.dayOffGranted = dayOffGranted;
     }
     public Model getModel() {
         return model;
     }
+    public ArrayList<Request> getRequestList() { return requestList; }
     public IntVar[][] getRoster() {
         return roster;
     }
@@ -89,4 +92,7 @@ public class RosterModel {
         this.subPeriodLength = (int) Math.ceil((double)period / numSubPeriods);
     }
 
+    public IntVar[] getDayOffGranted() {
+        return dayOffGranted;
+    }
 }

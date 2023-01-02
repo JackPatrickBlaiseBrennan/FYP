@@ -1,6 +1,7 @@
 package org.example;
 
 import org.chocosolver.solver.Model;
+import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.IntVar;
 
@@ -11,7 +12,6 @@ public class Main {
     public static void main(String[] args) {
         int period = 8;
         int numEmployees = 18;
-        String[] shifts = {"O", "M", "A", "N"};
 
         RosterModel rosterModel = new RosterModel(period, numEmployees, 4, 4, 4, 4);
         rosterModel.postAllHardConstraints();
@@ -27,32 +27,14 @@ public class Main {
         ArrayList<Request> requestList = rosterModel.getRequestList();
         Solver s = model.getSolver();
         s.limitTime("2s");
-
-        while (s.solve()) { //print the solution
-            IntVar numberOfGranted = rosterModel.getNumberOfGranted();
-            IntVar [][] roster = rosterModel.getRoster();
-            System.out.println("Solution " + s.getSolutionCount() + ":");
-            for (int j = 0; j < numEmployees; j++) {
-                System.out.print("Employee" + (j + 1) + ": ");
-                for (int i = 0; i < period; i++) {
-                    System.out.print(shifts[roster[i][j].getValue()] + " ");
-                }
-                System.out.print("\n");
-            }
-            System.out.print("Number of user requests granted: " + numberOfGranted.getValue() + "\n");
-            if (numberOfGranted.getValue() < 10){
-                System.out.println("Not Granted:");
-                IntVar[] daysOffGranted = rosterModel.getDayOffGranted();
-                for (Request request: requestList) {
-                    int index = requestList.indexOf(request);
-                    if (daysOffGranted[index].getValue() < 1){
-                        System.out.println("Index: " + index + " Employee: " + request.getEmployeeNumber() +
-                                " dayOffRangeStart: " + request.getDayOffRangeStart() +
-                                " dayOffRangeEnd: " + request.getDayOffRangeEnd() + " minNum: " + request.getMinNumOff());
-                    }
-                }
-            }
+        Solution solution = new Solution(model);
+        while (s.solve()) {
+            solution.record();
         }
+        int numberOfGranted = solution.getIntVal(rosterModel.getNumberOfGranted());
+        IntVar [][] roster = rosterModel.getRoster();
+        IntVar[] daysOffGranted = rosterModel.getDayOffGranted();
+        new PrintRoster(solution, roster, numberOfGranted, daysOffGranted, requestList);
         s.printStatistics();
     }
 }
